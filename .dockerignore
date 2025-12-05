@@ -1,0 +1,52 @@
+# Python / PyCharm
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+
+# PyCharm / IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+*.swp
+*.swo
+
+# Virtual envs
+pip-delete-this-directory.txt
+pip-wheel-metadata/
+
+# Local data you don't want in image
+data/chroma_db/
+chroma_db/
+*.db
+*.sqlite3
+
+# Git
+.git
+.gitignore
+.gitattributes
+.gitkeep
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak

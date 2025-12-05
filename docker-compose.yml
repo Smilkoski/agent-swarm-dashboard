@@ -1,0 +1,50 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: swarm
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports: ["5432:5432"]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  web:
+    build: ./backend
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgres://dev:dev@db:5432/swarm
+      - REDIS_URL=redis://localhost:6379/0
+    depends_on: [db, redis]
+
+  fastapi:
+    build: ./backend
+    command: uvicorn fastapi_app.main:app --host 0.0.0.0 --port 8001
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_URL=redis://localhost:6379/0
+    depends_on: [redis]
+
+  celery:
+    build: ./backend
+    command: celery -A app worker -l info
+    volumes:
+      - ./backend:/app
+    environment:
+      - REDIS_URL=redis://localhost:6379/0
+    depends_on: [redis, db]
+
+volumes:
+  postgres_data:

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Agent Swarm Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+  <div class="container mx-auto p-6">
+    <h1 class="text-4xl font-bold mb-6 text-center">Agent Swarm Dashboard</h1>
+
+    <div class="mb-6 text-center">
+      <input type="text" id="mission-name" placeholder="Mission name..." class="px-4 py-2 rounded-l bg-gray-800 text-white" value="2025 AI Agent Trends Report">
+      <button id="start-btn" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-r">Start Mission</button>
+    </div>
+
+    <div id="status" class="text-center text-xl mb-4"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 bg-gray-800 rounded-lg p-6 max-h-screen overflow-y-auto" id="timeline">
+        <p class="text-gray-400">Waiting for mission...</p>
+      </div>
+
+      <div class="bg-gray-800 rounded-lg p-6">
+        <h2 class="text-2xl mb-4">Live Graph (coming next batch)</h2>
+        <div id="mermaid" class="text-sm">graph TD; A[Start] --> B[Waiting...]</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let runId = null;
+    let source = null;
+
+    $("#start-btn").click(function() {
+      const name = $("#mission-name").val();
+      $("#timeline").html("<p class='text-yellow-400'>Starting agents...</p>");
+      $("#status").text("Mission launched!");
+
+      $.post("/api/start/", JSON.stringify({name: name}), function(data) {
+        runId = data.run_id;
+        history.pushState(null, null, "/run/" + runId);
+
+        if (source) source.close();
+        source = new EventSource("http://localhost:8001/stream/" + runId);
+
+        source.onmessage = function(e) {
+          const msg = JSON.parse(e.data);
+          const color = msg.type === "final" ? "bg-green-900" : "bg-blue-900";
+          $("#timeline").append(
+            `<div class="mb-4 p-4 rounded ${color} border border-gray-700">
+              <b class="text-yellow-300">${msg.agent_name}</b>
+              <p class="mt-1">${msg.content.replace(/\n/g, "<br>")}</p>
+            </div>`
+          );
+          $("#timeline")[0].scrollTop = $("#timeline")[0].scrollHeight;
+        };
+      });
+    });
+
+    const path = window.location.pathname;
+    if (path.startsWith("/run/")) {
+      runId = path.split("/run/")[1];
+      $("#status").text("Replaying run: " + runId);
+      // TODO: load from DB + replay
+    }
+  </script>
+</body>
+</html>
