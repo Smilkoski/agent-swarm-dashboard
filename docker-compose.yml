@@ -10,8 +10,18 @@ services:
     ports: ["5432:5432"]
 
   redis:
-    image: redis:7
-    ports: ["6379:6379"]
+    image: redis:7-alpine
+    container_name: swarm-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: > 
+      redis-server 
+      --save 60 1           
+      --appendonly yes     
+      --appendfsync everysec
+    volumes:
+      - redis_data:/data
 
   web:
     build: ./backend
@@ -37,14 +47,6 @@ services:
       - REDIS_URL=redis://localhost:6379/0
     depends_on: [redis]
 
-  celery:
-    build: ./backend
-    command: celery -A app worker -l info
-    volumes:
-      - ./backend:/app
-    environment:
-      - REDIS_URL=redis://localhost:6379/0
-    depends_on: [redis, db]
-
 volumes:
   postgres_data:
+  redis_data:
