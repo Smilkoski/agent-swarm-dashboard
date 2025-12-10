@@ -7,7 +7,6 @@ anyio==4.12.0
 asgiref==3.11.0
 attrs==25.4.0
 billiard==4.2.4
-celery==5.4.0
 certifi==2025.11.12
 charset-normalizer==3.4.4
 click==8.3.1
@@ -16,6 +15,7 @@ click-plugins==1.1.1.2
 click-repl==0.3.0
 colorama==0.4.6
 crewai==0.83.0
+crewai-tools==0.76.0
 dataclasses-json==0.6.7
 distro==1.9.0
 Django==5.1.3
@@ -35,10 +35,7 @@ kombu==5.6.1
 langchain==0.2.17
 langchain-community==0.2.16
 langchain-core==0.2.43
-#langchain-groq==1.1.0
 langchain-text-splitters==0.2.4
-#langgraph==0.2.5
-#langsmith==0.1.147
 marshmallow==3.26.1
 multidict==6.7.0
 mypy_extensions==1.1.0
@@ -76,3 +73,7 @@ websockets==15.0.1
 wheel==0.45.1
 yarl==1.22.0
 zstandard==0.25.0
+
+langchain-groq
+langgraph
+langsmith
