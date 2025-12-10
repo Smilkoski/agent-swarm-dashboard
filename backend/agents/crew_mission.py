@@ -86,6 +86,9 @@ def run_swarm_mission(mission_name: str = "2025 AI Agent Trends Report") -> uuid
 
     crew = Crew(agents=[researcher, writer], tasks=[task1, task2], verbose=True)
     result = crew.kickoff()
+    print("[DJANGO DEBUG] kickoff complete - publishing final")
+
+    publish(run_id, "Manager", f"Mission completed!\n\n{result}", "final")
 
     run.status = "completed"
     run.finished_at = timezone.now()
