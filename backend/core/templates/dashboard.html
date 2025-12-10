@@ -1,70 +1,263 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <title>Agent Swarm Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-</head>
-<body class="bg-gray-900 text-white min-h-screen">
-  <div class="container mx-auto p-6">
-    <h1 class="text-4xl font-bold mb-6 text-center">Agent Swarm Dashboard</h1>
-
-    <div class="mb-6 text-center">
-      <input type="text" id="mission-name" placeholder="Mission name..." class="px-4 py-2 rounded-l bg-gray-800 text-white" value="2025 AI Agent Trends Report">
-      <button id="start-btn" class="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-r">Start Mission</button>
-    </div>
-
-    <div id="status" class="text-center text-xl mb-4"></div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 bg-gray-800 rounded-lg p-6 max-h-screen overflow-y-auto" id="timeline">
-        <p class="text-gray-400">Waiting for mission...</p>
-      </div>
-
-      <div class="bg-gray-800 rounded-lg p-6">
-        <h2 class="text-2xl mb-4">Live Graph (coming next batch)</h2>
-        <div id="mermaid" class="text-sm">graph TD; A[Start] --> B[Waiting...]</div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let runId = null;
-    let source = null;
-
-    $("#start-btn").click(function() {
-      const name = $("#mission-name").val();
-      $("#timeline").html("<p class='text-yellow-400'>Starting agents...</p>");
-      $("#status").text("Mission launched!");
-
-      $.post("/api/start/", JSON.stringify({name: name}), function(data) {
-        runId = data.run_id;
-        history.pushState(null, null, "/run/" + runId);
-
-        if (source) source.close();
-        source = new EventSource("http://localhost:8001/stream/" + runId);
-
-        source.onmessage = function(e) {
-          const msg = JSON.parse(e.data);
-          const color = msg.type === "final" ? "bg-green-900" : "bg-blue-900";
-          $("#timeline").append(
-            `<div class="mb-4 p-4 rounded ${color} border border-gray-700">
-              <b class="text-yellow-300">${msg.agent_name}</b>
-              <p class="mt-1">${msg.content.replace(/\n/g, "<br>")}</p>
-            </div>`
-          );
-          $("#timeline")[0].scrollTop = $("#timeline")[0].scrollHeight;
-        };
-      });
-    });
-
-    const path = window.location.pathname;
-    if (path.startsWith("/run/")) {
-      runId = path.split("/run/")[1];
-      $("#status").text("Replaying run: " + runId);
-      // TODO: load from DB + replay
+    <meta charset="UTF-8">
+    <title>Agent Swarm Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script>
+        mermaid.initialize({startOnLoad: true, theme: 'dark', flowchart: {useMaxWidth: true}});
+    </script>
+    <style>
+    .mermaid .nodeLabel {
+        fill: white !important;
     }
-  </script>
+
+    .mermaid .success {
+        fill: #10b981 !important;
+    }
+</style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+<div class="container mx-auto p-6 max-w-7xl">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
+            Agent Swarm Dashboard
+        </h1>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-wrap gap-4 mb-8">
+        <input type="text" id="mission-name" placeholder="Mission name..." value="2025 AI Agent Trends Report"
+               class="flex-1 min-w-64 px-5 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-purple-500 outline-none">
+        <button id="start-btn"
+                class="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-bold hover:opacity-90 transition">
+            Start Mission
+        </button>
+        <button id="replay-btn" class="px-6 py-3 bg-gray-700 rounded-lg hidden">Replay Last Run</button>
+    </div>
+
+    <div id="status" class="text-center text-2xl mb-6 font-mono"></div>
+
+    <!-- Live status -->
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <!-- Timeline -->
+        <div class="xl:col-span-2 bg-gray-900 rounded-2xl p-6 shadow-2xl max-h-screen overflow-y-auto" id="timeline">
+            <p class="text-gray-500 text-center" id="placeholder">Waiting for agents to wake up...</p>
+        </div>
+
+        <!-- Live Graph -->
+        <div class="bg-gray-900 rounded-2xl p-6 shadow-2xl">
+          <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+            <i class="fas fa-project-diagram text-purple-400"></i>
+            Live Agent Graph
+          </h2>
+          <div id="mermaid-graph" class="bg-gray-950 p-6 rounded-xl overflow-x-auto"></div>
+        </div>
+
+        <!-- Mission History -->
+        <div class="bg-gray-900 rounded-2xl p-6 shadow-2xl">
+          <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+            <i class="fas fa-history text-purple-400"></i>
+            Mission History
+          </h2>
+          <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto text-sm">
+          </div>
+        </div>
+
+    </div>
+    </div>
+
+{{ messages_json|json_script:"initial-messages-data" }}
+
+<script>
+let source = null;
+let tokenCount = 0;
+let startTime = null;
+let missionHistory = JSON.parse(localStorage.getItem('swarmHistory') || '[]');
+let missionName = null;
+
+const initialMessages = JSON.parse(
+        document.getElementById('initial-messages-data').textContent
+    );
+
+let mermaidCode = `
+graph TD
+    Start[Swarm Ready]:::ready
+    classDef ready fill:#6366f1,stroke:#4f46e5,color:white,font-weight:bold,rx:12px,ry:12px
+    classDef manager fill:#8b5cf6,stroke:#7c3aed,color:white,font-weight:bold,rx:15px,ry:15px
+    classDef agent fill:#1e293b,stroke:#64748b,color:#e2e8f0,rx:12px,ry:12px
+    classDef success fill:#059669,stroke:#047857,color:white,font-weight:bold,rx:20px,ry:20px
+`;
+
+function renderMessages(messages) {
+
+    if (messages === undefined || messages.length === 0)
+        return;
+    messages = JSON.parse(messages);
+
+    for (let msg of messages) {
+        tokenCount += countTokens(msg.content);
+        $("#status").html(`<span class="text-green-400">● Live • ${tokenCount} tokens • $${(tokenCount * 0.00006).toFixed(4)}</span>`);
+
+        updateGraph(msg.agent_name, msg.message_type);
+
+        const color = msg.message_type === "final" ? "from-emerald-600 to-green-600" : "from-blue-900 to-indigo-900";
+        $("#timeline").append(`
+        <div class="mb-5 p-5 rounded-xl bg-gradient-to-r ${color} border border-gray-700 shadow-lg transform hover:scale-105 transition">
+            <div class="flex justify-between items-start">
+                <b class="text-xl text-yellow-300">${msg.agent_name}</b>
+                <span class="text-xs opacity-70">${msg.timestamp}</span>
+            </div>
+            <div class="mt-3 prose prose-invert max-w-none text-white font-medium">
+                ${renderMarkdown(msg.content)}
+            </div>
+        </div>
+    `);
+        $("#timeline")[0].scrollTop = $("#timeline")[0].scrollHeight;
+
+        if (msg.message_type === "final") {
+            $("#placeholder").hide();
+        }
+
+    }
+}
+
+renderMessages(initialMessages)
+
+function updateGraph(agent, type) {
+    const id = agent.replace(/[^a-zA-Z0-9]/g, '_');
+    if (!mermaidCode.includes("Manager[")) {
+        mermaidCode += `    Manager[Manager]:::manager\n    Start --> Manager\n`;
+    }
+    if (!mermaidCode.includes(`${id}[${agent}]`)) {
+        mermaidCode += `    ${id}[${agent}]:::agent\n    Manager --> ${id}\n`;
+    }
+    if (type === "final") {
+        mermaidCode += `    ${id} --> DONE[Mission Complete]:::success\n`;
+    }
+    document.getElementById("mermaid-graph").innerHTML = `<pre class="mermaid">${mermaidCode}</pre>`;
+    mermaid.run({ nodes: [document.querySelector('#mermaid-graph .mermaid')] });
+}
+
+function countTokens(text) {
+    return Math.ceil(text.length / 4);
+}
+
+function renderMarkdown(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/__(.*?)__/g, "<strong>$1</strong>")
+        .replace(/\*(.*?)\*/g, "<em>$1</em>")
+        .replace(/_(.*?)_/g, "<em>$1</em>")
+        .replace(/`(.*?)`/g, "<code class='bg-black/50 px-1 rounded'>$1</code>")
+        .replace(/\n/g, "<br>");
+}
+
+function connectSSE(runId, retryCount = 0) {
+    if (source) source.close();
+
+    source = new EventSource(`http://localhost:8001/stream/${runId}`);
+
+    source.onopen = () => {
+        console.log("SSE Connected:", runId);
+        $("#status").html(`<span class="text-green-400">● Live • ${tokenCount} tokens</span>`);
+    };
+
+    source.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        tokenCount += countTokens(msg.content);
+        $("#status").html(`<span class="text-green-400">● Live • ${tokenCount} tokens • $${(tokenCount*0.00006).toFixed(4)}</span>`);
+
+        updateGraph(msg.agent_name, msg.type);
+
+        const color = msg.type === "final" ? "from-emerald-600 to-green-600" : "from-blue-900 to-indigo-900";
+        $("#timeline").append(`
+            <div class="mb-5 p-5 rounded-xl bg-gradient-to-r ${color} border border-gray-700 shadow-lg transform hover:scale-105 transition">
+                <div class="flex justify-between items-start">
+                    <b class="text-xl text-yellow-300">${msg.agent_name}</b>
+                    <span class="text-xs opacity-70">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div class="mt-3 prose prose-invert max-w-none text-white font-medium">
+                    ${renderMarkdown(msg.content)}
+                </div>
+            </div>
+        `);
+        $("#timeline")[0].scrollTop = $("#timeline")[0].scrollHeight;
+
+        if (msg.type === "final") {
+            $("#placeholder").hide();
+            saveToHistory(runId, missionName, tokenCount);
+        }
+    };
+
+    source.onerror = () => {
+        console.error("SSE Error — reconnecting...");
+        const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+        setTimeout(() => connectSSE(runId, retryCount + 1), delay);
+    };
+}
+
+function saveToHistory(runId, name, tokens) {
+    const entry = { runId, name, tokens, date: new Date().toISOString() };
+    missionHistory.unshift(entry);
+    if (missionHistory.length > 20) missionHistory.pop();
+    localStorage.setItem('swarmHistory', JSON.stringify(missionHistory));
+    renderHistory();
+}
+
+function renderHistory() {
+    const list = $("#history-list");
+    list.empty();
+    missionHistory.forEach(entry => {
+        list.append(`
+            <button onclick="location.href='/run/${entry.runId}'" class="block w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded mb-2">
+                <div class="font-bold">${entry.name}</div>
+                <div class="text-xs opacity-70">${new Date(entry.date).toLocaleDateString()} • ${entry.tokens} tokens</div>
+            </button>
+        `);
+    });
+}
+
+// START MISSION
+$("#start-btn").click(function () {
+    let run_id = null;
+    missionName = $("#mission-name").val().trim() || "New Mission";
+    tokenCount = 0;
+    startTime = Date.now();
+    $("#status").text("Launching agents...");
+
+    async function startMissionFlow() {
+    try {
+        const createRes = await $.post("/create_agent/");
+        const run_id = createRes.run_id;
+
+        connectSSE(run_id);
+
+        // wait 1 second for subscriptions to initialize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await $.post("/api/start/", JSON.stringify({name: missionName, run_id: run_id}));
+
+        } catch (err) {
+            console.error("Mission launch failed:", err);
+            alert("Something went wrong. Check console.");
+        }
+    }
+
+    startMissionFlow();
+
+});
+
+mermaid.run({ nodes: [document.querySelector('#mermaid-graph .mermaid')] });
+renderHistory();
+
+</script>
+
 </body>
 </html>
