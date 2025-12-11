@@ -19,6 +19,33 @@
     .mermaid .success {
         fill: #10b981 !important;
     }
+
+.bg-graph {
+  width: 100%;
+  min-width: fit-content;
+  max-width: 90vw;
+  margin: 0 auto;
+}
+
+#mermaid-graph {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#mermaid-graph svg {
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 1024px) {
+  .bg-graph {
+    min-width: 1200px;
+  }
+  #mermaid-graph svg {
+    min-width: 1000px;
+  }
+}
+
 </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen">
@@ -32,6 +59,8 @@
 
     <!-- Controls -->
     <div class="flex flex-wrap gap-4 mb-8">
+<!--        <input type="text" id="mission-name" placeholder="Mission name..." value="Uber for Dog Walking in Rural Areas"-->
+<!--        <input type="text" id="mission-name" placeholder="Mission name..." value="Corporate Conference Planning"-->
         <input type="text" id="mission-name" placeholder="Mission name..." value="2025 AI Agent Trends Report"
                class="flex-1 min-w-64 px-5 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-purple-500 outline-none">
         <button id="start-btn"
@@ -43,22 +72,11 @@
 
     <div id="status" class="text-center text-2xl mb-6 font-mono"></div>
 
-    <!-- Live status -->
-
     <!-- Main Grid -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <!-- Timeline -->
         <div class="xl:col-span-2 bg-gray-900 rounded-2xl p-6 shadow-2xl max-h-screen overflow-y-auto" id="timeline">
             <p class="text-gray-500 text-center" id="placeholder">Waiting for agents to wake up...</p>
-        </div>
-
-        <!-- Live Graph -->
-        <div class="bg-gray-900 rounded-2xl p-6 shadow-2xl">
-          <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
-            <i class="fas fa-project-diagram text-purple-400"></i>
-            Live Agent Graph
-          </h2>
-          <div id="mermaid-graph" class="bg-gray-950 p-6 rounded-xl overflow-x-auto"></div>
         </div>
 
         <!-- Mission History -->
@@ -67,10 +85,29 @@
             <i class="fas fa-history text-purple-400"></i>
             Mission History
           </h2>
-          <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto text-sm">
-          </div>
+            <div id="history-list" class="space-y-2 max-h-96 overflow-y-auto text-sm">
+                {% for entry in history %}
+                  <button onclick="location.href='/run/{{ entry.run_id }}'" class="block w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded mb-2">
+                    <div class="font-bold">{{ entry.name }}</div>
+                    <div class="text-xs opacity-70">
+                      {{ entry.started_at}} • {{ entry.tokens }} tokens
+                    </div>
+                  </button>
+                {% empty %}
+                  <div class="text-center text-gray-500 p-3">No mission history available yet.</div>
+                {% endfor %}
+            </div>
         </div>
 
+        <!-- Live Graph -->
+        <div class="bg-graph rounded-2xl p-6 shadow-2xl w-full min-w-fit mx-auto">
+          <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+            <i class="fas fa-project-diagram text-purple-400"></i>
+            Live Agent Graph
+          </h2>
+          <div id="mermaid-graph" class="bg-gray-950 p-6 rounded-xl overflow-x-auto w-full">
+          </div>
+        </div>
     </div>
     </div>
 
@@ -80,7 +117,6 @@
 let source = null;
 let tokenCount = 0;
 let startTime = null;
-let missionHistory = JSON.parse(localStorage.getItem('swarmHistory') || '[]');
 let missionName = null;
 
 const initialMessages = JSON.parse(
@@ -205,24 +241,12 @@ function connectSSE(runId, retryCount = 0) {
 }
 
 function saveToHistory(runId, name, tokens) {
-    const entry = { runId, name, tokens, date: new Date().toISOString() };
-    missionHistory.unshift(entry);
-    if (missionHistory.length > 20) missionHistory.pop();
-    localStorage.setItem('swarmHistory', JSON.stringify(missionHistory));
-    renderHistory();
-}
-
-function renderHistory() {
-    const list = $("#history-list");
-    list.empty();
-    missionHistory.forEach(entry => {
-        list.append(`
-            <button onclick="location.href='/run/${entry.runId}'" class="block w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded mb-2">
-                <div class="font-bold">${entry.name}</div>
-                <div class="text-xs opacity-70">${new Date(entry.date).toLocaleDateString()} • ${entry.tokens} tokens</div>
+    $("#history-list").append(`
+            <button onclick="location.href='/run/${runId}'" class="block w-full text-left p-3 bg-gray-800 hover:bg-gray-700 rounded mb-2">
+                <div class="font-bold">${name}</div>
+                <div class="text-xs opacity-70">${new Date().toLocaleDateString()} • ${tokens} tokens</div>
             </button>
         `);
-    });
 }
 
 // START MISSION
@@ -241,7 +265,7 @@ $("#start-btn").click(function () {
         connectSSE(run_id);
 
         // wait 1 second for subscriptions to initialize
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         await $.post("/api/start/", JSON.stringify({name: missionName, run_id: run_id}));
 
         } catch (err) {
@@ -255,7 +279,6 @@ $("#start-btn").click(function () {
 });
 
 mermaid.run({ nodes: [document.querySelector('#mermaid-graph .mermaid')] });
-renderHistory();
 
 </script>
 
