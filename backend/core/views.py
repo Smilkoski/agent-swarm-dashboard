@@ -1,16 +1,23 @@
+import math
 import uuid
+from collections import defaultdict
+import json
 
+from django.db.models import F
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
 
 from .models import AgentRun, AgentMessage
-from agents.crew_mission import run_swarm_mission
+from agents.crew_mission import run_feasibility_mission, run_swarm_mission, run_conference_planing
 
 
 def dashboard(request):
-    return render(request, "dashboard.html")
+    context = {
+        "history": get_history()
+    }
+
+    return render(request, "dashboard.html", context)
 
 
 def run_detail(request, run_id):
@@ -32,6 +39,7 @@ def run_detail(request, run_id):
         ]
     context = {
         "messages_json": json.dumps(messages),
+        "history": get_history()
     }
     return render(request, "dashboard.html", context)
 
@@ -53,7 +61,50 @@ def start_mission(request):
         name = data.get("name", "New Mission")
         run_id = data.get("run_id", 0)
         run_swarm_mission(name, run_id)
-
+        # run_feasibility_mission(idea=name, run_id=run_id)
+        # run_conference_planing(mission_name=name, run_id=run_id)
         return JsonResponse({"run_id": str(run_id)})
 
     return JsonResponse({"error": "POST only"}, status=400)
+
+def get_history():
+    history = list(
+        AgentMessage.objects
+        .filter(
+            run__status="completed"
+        )
+        .select_related('run')
+        .values(
+            'content',
+            run_uuid=F('run__run_id'),
+            run_name=F('run__name'),
+            run_started_at=F('run__started_at'),
+        )
+        .order_by('timestamp')
+    )
+    run_ids = set([str(h['run_uuid']) for h in history])
+    new_history = defaultdict(lambda: {"tokens": 0})
+
+    for msg in history:
+        rid = str(msg["run_uuid"])
+        if rid not in run_ids:
+            continue
+
+        if "run_id" not in new_history[rid]:
+            new_history[rid].update({
+                "run_id": rid,
+                "name": msg.get("run_name", "Untitled Mission"),
+                "started_at": (
+                    msg["run_started_at"].strftime("%H:%M:%S")
+                    if msg["run_started_at"] else "—"
+                ),
+            })
+
+        new_history[rid]["tokens"] += count_tokens(msg["content"])
+
+    new_history = dict(new_history)
+    return new_history.values()
+
+
+def count_tokens(text):
+    return math.ceil(len(text) / 4)
