@@ -1,5 +1,59 @@
-from core.models import AgentRun, AgentMessage
-from core.redis_client import publish_message
+import platform
+import signal
+
+
+
+def patch_signals_for_windows():
+    """Define missing POSIX signals on Windows for CrewAI's SignalType enum."""
+    if platform.system() != 'Windows':
+        return  # POSIX systems (Linux/macOS) have these natively
+
+    # Standard Unix signal values (from <signal.h>); dummies for Windows
+    missing_signals = {
+        'SIGHUP': 1,
+        'SIGINT': 2,  # Actually available on Windows, but ensure
+        'SIGQUIT': 3,
+        'SIGILL': 4,
+        'SIGTRAP': 5,
+        'SIGABRT': 6,  # Available
+        'SIGBUS': 7,
+        'SIGFPE': 8,   # Available
+        'SIGKILL': 9,
+        'SIGUSR1': 10,
+        'SIGSEGV': 11, # Available
+        'SIGUSR2': 12,
+        'SIGPIPE': 13,
+        'SIGALRM': 14,
+        'SIGTERM': 15, # Available
+        'SIGSTKFLT': 16,
+        'SIGCHLD': 17,
+        'SIGCONT': 18,
+        'SIGSTOP': 19,
+        'SIGTSTP': 20, # The new culprit
+        'SIGTTIN': 21,
+        'SIGTTOU': 22,
+        'SIGURG': 23,
+        'SIGXCPU': 24,
+        'SIGXFSZ': 25,
+        'SIGVTALRM': 26,
+        'SIGPROF': 27,
+        'SIGWINCH': 28,
+        'SIGIO': 29,
+        'SIGPWR': 30,
+        'SIGSYS': 31,
+        'SIGRTMIN': 34,  # Real-time signals (extend as needed)
+        'SIGRTMAX': 64,
+    }
+
+    for attr, value in missing_signals.items():
+        if not hasattr(signal, attr):
+            setattr(signal, attr, value)
+
+    print("[DJANGO DEBUG] Full Windows signal patch applied for CrewAI")
+
+patch_signals_for_windows()
+
+import time
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from crewai import Agent, Task, Crew
