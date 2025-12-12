@@ -87,7 +87,7 @@ def get_history():
             run_name=F('run__name'),
             run_started_at=F('run__started_at'),
         )
-        .order_by('timestamp')
+        .order_by('-timestamp')
     )
     run_ids = set([str(h['run_uuid']) for h in history])
     new_history = defaultdict(lambda: {"tokens": 0})
