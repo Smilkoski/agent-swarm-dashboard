@@ -1,6 +1,3 @@
-
-
-# backend/app/settings.py
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -44,24 +41,17 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# Celery
-CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
 
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY", "sk-...")
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # 'DIRS': [r"C:\Users\hrist\PycharmProjects\agent-swarm-dashboard\backend\core\templates"],
-        'DIRS': [r"C:/Users/hrist/PycharmProjects/agent-swarm-dashboard/backend/core/templates"],
+        'DIRS': [BASE_DIR / 'core' / 'templates',
+                 BASE_DIR / 'templates'
+                ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -80,18 +70,19 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': BASE_DIR / 'db.sqlite3',
+    # },
+    "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB", "swarmdb"),
+            "USER": os.getenv("POSTGRES_USER", "swarmuser"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "swarmpass123"),
+            "HOST": os.getenv("POSTGRES_HOST", "postgres"),
+            "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": 600,
     }
-    # "default": {
-    #     "ENGINE": "django.db.backends.postgresql",
-    #     "NAME": os.getenv("POSTGRES_DB", "swarm"),
-    #     "USER": os.getenv("POSTGRES_USER", "dev"),
-    #     "PASSWORD": os.getenv("POSTGRES_PASSWORD", "dev"),
-    #     "HOST": "db",
-    #     "PORT": "5432",
-    # }
 }
 
 
