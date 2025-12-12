@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import AgentRun, AgentMessage
-from agents.crew_mission import run_feasibility_mission, run_swarm_mission, run_conference_planing
+from agents.crew_mission import run_feasibility_mission, run_research_mission, run_conference_planing
 
 
 def dashboard(request):
@@ -62,8 +62,8 @@ def start_mission(request):
         run_id = data.get("run_id", 0)
         mission_type = data.get("type", "feasibility")
 
-        if mission_type == "swarm":
-            run_swarm_mission(name, run_id)
+        if mission_type == "research":
+            run_research_mission(name, run_id)
         elif mission_type == "feasibility":
             run_feasibility_mission(idea=name, run_id=run_id)
         elif mission_type == "conference":

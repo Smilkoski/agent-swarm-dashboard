@@ -82,7 +82,7 @@ def publish(run_id, agent_name, content, msg_type="thought"):
     )
 
 
-def run_swarm_mission(mission_name: str = "2025 AI Agent Trends Report", run_id: str = '') -> str:
+def run_research_mission(mission_name: str = "2025 AI Agent Trends Report", run_id: str = '') -> str:
     run = get_object_or_404(AgentRun, run_id=run_id)
     run.name = mission_name
 
@@ -96,7 +96,7 @@ def run_swarm_mission(mission_name: str = "2025 AI Agent Trends Report", run_id:
 
     researcher = Agent(
         role="Senior Research Analyst",
-        goal="Find the hottest AI agent trends for 2025",
+        goal=f"Find the hottest features/ trends for {mission_name}",
         backstory="World-class researcher at top VC firm",
         llm=llm,
         verbose=False,
@@ -112,7 +112,7 @@ def run_swarm_mission(mission_name: str = "2025 AI Agent Trends Report", run_id:
         allow_delegation=False,
     )
 
-    task1 = Task(description="List top 5 AI agent trends for 2025 with sources", expected_output="Bullet list with links", agent=researcher)
+    task1 = Task(description="List top 5 features/ trends  with sources", expected_output="Bullet list with links", agent=researcher)
     task2 = Task(description="Turn the research into a viral LinkedIn post <280 words", expected_output="Ready-to-post text", agent=writer)
 
     def process_callback(output):
