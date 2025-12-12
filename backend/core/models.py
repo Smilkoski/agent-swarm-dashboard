@@ -1,4 +1,3 @@
-# backend/core/models.py – FINAL VERSION
 import uuid
 from django.db import models
 

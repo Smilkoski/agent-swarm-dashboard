@@ -1,6 +1,8 @@
+import os
 import platform
 import signal
 
+from pydantic import SecretStr
 
 
 def patch_signals_for_windows():
@@ -88,7 +90,8 @@ def run_swarm_mission(mission_name: str = "2025 AI Agent Trends Report", run_id:
 
     llm = ChatGroq(
         model="groq/llama-3.1-8b-instant",
-        temperature=0
+        temperature=0,
+        api_key=SecretStr(os.getenv("GROQ_API_KEY",""))
     )
 
     researcher = Agent(
