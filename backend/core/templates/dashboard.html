@@ -59,12 +59,14 @@
 
     <!-- Controls -->
     <div class="flex flex-wrap gap-4 mb-8">
-<!--        <input type="text" id="mission-name" placeholder="Mission name..." value="Uber for Dog Walking in Rural Areas"-->
-<!--        <input type="text" id="mission-name" placeholder="Mission name..." value="Corporate Conference Planning"-->
-        <input type="text" id="mission-name" placeholder="Mission name..." value="2025 AI Agent Trends Report"
+        <input type="text" id="mission-name" placeholder="Mission name..." value="Uber for Dog Walking in Rural Areas"
                class="flex-1 min-w-64 px-5 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-purple-500 outline-none">
-        <button id="start-btn"
-                class="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-bold hover:opacity-90 transition">
+        <select id="mission-type" class="px-5 py-3 rounded-lg bg-gray-900 border border-gray-700 focus:border-purple-500 outline-none">
+            <option value="feasibility">Feasibility Mission</option>
+            <option value="swarm">Swarm Mission</option>
+            <option value="conference">Conference Planning</option>
+        </select>
+        <button id="start-btn" class="px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-bold hover:opacity-90 transition">
             Start Mission
         </button>
         <button id="replay-btn" class="px-6 py-3 bg-gray-700 rounded-lg hidden">Replay Last Run</button>
@@ -177,6 +179,7 @@ function updateGraph(agent, type) {
     }
     if (type === "final") {
         mermaidCode += `    ${id} --> DONE[Mission Complete]:::success\n`;
+        $("#start-btn").prop('disabled', false).text('Start Mission');
     }
     document.getElementById("mermaid-graph").innerHTML = `<pre class="mermaid">${mermaidCode}</pre>`;
     mermaid.run({ nodes: [document.querySelector('#mermaid-graph .mermaid')] });
@@ -251,26 +254,26 @@ function saveToHistory(runId, name, tokens) {
 
 // START MISSION
 $("#start-btn").click(function () {
+    if ($(this).prop('disabled')) return;
+    $(this).prop('disabled', true).text('Mission In Progress...');
     let run_id = null;
     missionName = $("#mission-name").val().trim() || "New Mission";
+    const missionType = $("#mission-type").val();
     tokenCount = 0;
     startTime = Date.now();
     $("#status").text("Launching agents...");
-
     async function startMissionFlow() {
-    try {
-        const createRes = await $.post("/create_agent/");
-        const run_id = createRes.run_id;
-
-        connectSSE(run_id);
-
-        // wait 1 second for subscriptions to initialize
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        await $.post("/api/start/", JSON.stringify({name: missionName, run_id: run_id}));
-
+        try {
+            const createRes = await $.post("/create_agent/");
+            const run_id = createRes.run_id;
+            connectSSE(run_id);
+            // wait 2 seconds for subscriptions to initialize
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await $.post("/api/start/", JSON.stringify({name: missionName, run_id: run_id, type: missionType}));
         } catch (err) {
             console.error("Mission launch failed:", err);
             alert("Something went wrong. Check console.");
+            $("#start-btn").prop('disabled', false).text('Start Mission');
         }
     }
 

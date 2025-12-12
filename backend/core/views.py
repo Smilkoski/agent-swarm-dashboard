@@ -60,11 +60,18 @@ def start_mission(request):
         data = json.loads(request.body)
         name = data.get("name", "New Mission")
         run_id = data.get("run_id", 0)
-        run_swarm_mission(name, run_id)
-        # run_feasibility_mission(idea=name, run_id=run_id)
-        # run_conference_planing(mission_name=name, run_id=run_id)
-        return JsonResponse({"run_id": str(run_id)})
+        mission_type = data.get("type", "feasibility")
 
+        if mission_type == "swarm":
+            run_swarm_mission(name, run_id)
+        elif mission_type == "feasibility":
+            run_feasibility_mission(idea=name, run_id=run_id)
+        elif mission_type == "conference":
+            run_conference_planing(mission_name=name, run_id=run_id)
+        else:
+            return JsonResponse({"error": "Invalid mission type"}, status=400)
+
+        return JsonResponse({"run_id": str(run_id)})
     return JsonResponse({"error": "POST only"}, status=400)
 
 def get_history():
