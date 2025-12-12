@@ -127,6 +127,7 @@ python-docx==1.2.0
 python-dotenv==1.1.1
 python-multipart==0.0.20
 pytube==15.0.0
+pywin32==311
 PyYAML==6.0.3
 ratelimiter==1.2.0.post0
 redis==7.1.0
@@ -170,5 +171,3 @@ yarl==1.22.0
 youtube-transcript-api==1.2.3
 zipp==3.23.0
 zstandard==0.25.0
-psycopg[binary,pool]>=3.1.18
-litellm[proxy]
