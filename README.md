@@ -47,32 +47,6 @@ The dashboard supports three distinct mission types, each powered by CrewAI's mu
 - **Other Libraries**: JSON for data handling, UUID for run IDs, and various Django utilities (e.g., `csrf_exempt`, `JsonResponse`).
 - **Deployment**: Docker (for containerization and easy setup).
 
-## Installation
-
-
-2. Install dependencies (if not using Docker):
-   ```
-   pip install -r requirements.txt
-   ```
-   (Assume a `requirements.txt` with Django, crewai, langchain-groq, pydantic, etc.)
-
-3. Set environment variables (e.g., for Groq API key):
-   ```
-   export GROQ_API_KEY=your_api_key_here
-   ```
-
-4. Apply migrations:
-   ```
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
-
-5. Run the development server:
-   ```
-   python manage.py runserver
-   ```
-   Access at `http://localhost:8000`.
-
 ## How to Start with Docker
 
 1. Clone the repository:
